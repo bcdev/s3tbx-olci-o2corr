@@ -1,9 +1,12 @@
 package org.esa.s3tbx.olci.o2corr;
 
+import com.bc.ceres.core.ProgressMonitor;
+import org.esa.snap.core.datamodel.Band;
 import org.esa.snap.core.datamodel.Product;
 import org.esa.snap.core.gpf.Operator;
 import org.esa.snap.core.gpf.OperatorException;
 import org.esa.snap.core.gpf.OperatorSpi;
+import org.esa.snap.core.gpf.Tile;
 import org.esa.snap.core.gpf.annotations.OperatorMetadata;
 import org.esa.snap.core.gpf.annotations.Parameter;
 import org.esa.snap.core.gpf.annotations.SourceProduct;
@@ -53,6 +56,11 @@ public class O2CorrOlciOp extends Operator {
     @Override
     public void initialize() throws OperatorException {
 
+    }
+
+    @Override
+    public void computeTile(Band targetBand, Tile targetTile, ProgressMonitor pm) throws OperatorException {
+        super.computeTile(targetBand, targetTile, pm);
     }
 
     public static class Spi extends OperatorSpi {
