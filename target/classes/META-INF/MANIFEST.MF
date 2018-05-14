@@ -1,0 +1,30 @@
+Manifest-Version: 1.0
+AutoUpdate-Show-In-Client: true
+AutoUpdate-Essential-Module: false
+OpenIDE-Module-Java-Dependencies: Java > 1.8
+OpenIDE-Module-Display-Category: Sentinel-3 Toolbox
+OpenIDE-Module-Layer: layer.xml
+OpenIDE-Module-Specification-Version: 0.8
+OpenIDE-Module-Implementation-Version: 0.8-20180514
+OpenIDE-Module-Build-Version: 201805141625
+OpenIDE-Module: org.esa.s3tbx.s3tbx.olci.o2corr
+OpenIDE-Module-Public-Packages: -
+OpenIDE-Module-Requires: org.openide.modules.ModuleFormat1
+OpenIDE-Module-Name: S3TBX OLCI O2 Correction
+OpenIDE-Module-Short-Description: Performs O2 correction for OLCI (Jav
+ a implementation).
+OpenIDE-Module-Long-Description: Performs O2 correction for OLCI (Java
+  implementation).
+X-Class-Path: ext/org.esa.s3tbx.s3tbx-olci-o2corr/org-esa-snap/snap-ru
+ ntime.jar ext/org.esa.s3tbx.s3tbx-olci-o2corr/junit/junit.jar ext/org
+ .esa.s3tbx.s3tbx-olci-o2corr/org-hamcrest/hamcrest-core.jar docs/org-
+ esa-s3tbx-s3tbx-olci-o2corr.jar
+Maven-Class-Path: org.esa.snap:snap-runtime:7.0.0-SNAPSHOT junit:junit
+ :4.12 org.hamcrest:hamcrest-core:1.3
+OpenIDE-Module-Module-Dependencies: org.esa.snap.ceres.core > 7.0.0.0,
+  org.esa.snap.ceres.jai > 7.0.0.0, org.esa.snap.ceres.metadata > 7.0.
+ 0.0, org.esa.snap.ceres.glayer > 7.0.0.0, org.esa.snap.snap.core > 7.
+ 0.0.0, org.esa.snap.snap.gpf > 7.0.0.0, org.esa.snap.snap.envisat.rea
+ der > 7.0.0.0, org.esa.snap.snap.csv.dataio > 7.0.0.0, org.esa.snap.s
+ nap.raster > 7.0.0.0
+

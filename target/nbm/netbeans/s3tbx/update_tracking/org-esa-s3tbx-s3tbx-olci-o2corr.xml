@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.esa.s3tbx.s3tbx.olci.o2corr">
+    <module_version install_time="1526315121430" last="true" origin="installer" specification_version="0.8">
+        <file crc="2404897813" name="config/Modules/org-esa-s3tbx-s3tbx-olci-o2corr.xml"/>
+        <file crc="503799979" name="modules/docs/org-esa-s3tbx-s3tbx-olci-o2corr.jar"/>
+        <file crc="1355517765" name="modules/ext/org.esa.s3tbx.s3tbx-olci-o2corr/junit/junit.jar"/>
+        <file crc="2232837632" name="modules/ext/org.esa.s3tbx.s3tbx-olci-o2corr/org-esa-snap/snap-runtime.jar"/>
+        <file crc="2893489971" name="modules/ext/org.esa.s3tbx.s3tbx-olci-o2corr/org-hamcrest/hamcrest-core.jar"/>
+        <file crc="877581282" name="modules/org-esa-s3tbx-s3tbx-olci-o2corr.jar"/>
+    </module_version>
+</module>
