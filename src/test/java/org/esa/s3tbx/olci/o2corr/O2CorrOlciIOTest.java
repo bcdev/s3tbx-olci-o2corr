@@ -3,6 +3,8 @@ package org.esa.s3tbx.olci.o2corr;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Test;
+import smile.neighbor.KDTree;
+import smile.neighbor.Neighbor;
 
 import java.io.FileReader;
 
@@ -45,19 +47,43 @@ public class O2CorrOlciIOTest {
         JSONParser jsonParser = new JSONParser();
         JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonFile));
 
+        // parse JSON file...
         final long L = O2CorrOlciIO.parseJSONInt(jsonObject, "L");
-        final long expectedL = 3;
-        assertEquals(expectedL, L);
-
         final long M = O2CorrOlciIO.parseJSONInt(jsonObject, "M");
-        final long expectedM = 1;
-        assertEquals(expectedM, M);
-
         final long N = O2CorrOlciIO.parseJSONInt(jsonObject, "N");
-        final long expectedN = 4;
-        assertEquals(expectedN, N);
-
         final double[][][] jacobians = O2CorrOlciIO.parseJSON3DimDoubleArray(jsonObject, "JACO");
+        final double[][] X = O2CorrOlciIO.parseJSON2DimDoubleArray(jsonObject, "X");
+        final double[][] Y = O2CorrOlciIO.parseJSON2DimDoubleArray(jsonObject, "Y");
+        final double[] VARI = O2CorrOlciIO.parseJSON1DimDoubleArray(jsonObject, "VARI");
+        final double cbwd = O2CorrOlciIO.parseJSONDouble(jsonObject, "cbwd");
+        final double cwvl = O2CorrOlciIO.parseJSONDouble(jsonObject, "cwvl");
+        final long leafsize = O2CorrOlciIO.parseJSONInt(jsonObject, "leafsize");
+        final String[] sequ = O2CorrOlciIO.parseJSON1DimStringArray(jsonObject, "sequ");
+        final double[] MEAN = O2CorrOlciIO.parseJSON1DimDoubleArray(jsonObject, "MEAN");
+
+        // test all parsed objects...
+        assertJSONParsedObjects(L, M, N, jacobians, X, Y, VARI, cbwd, cwvl, leafsize, sequ, MEAN);
+
+        // test DesmileLut holder...
+        DesmileLut lut = new DesmileLut(L, M, N, X, Y, jacobians, MEAN, VARI, cwvl, cbwd, leafsize, sequ);
+        assertNotNull(lut);
+        assertJSONParsedObjects(lut.getL(), lut.getM(), lut.getN(), lut.getJACO(), lut.getX(), lut.getY(), lut.getVARI(),
+                                lut.getCbwd(), lut.getCwvl(), lut.getLeafsize(), lut.getSequ(), lut.getMEAN());
+    }
+
+    private void assertJSONParsedObjects(long l, long m, long n,
+                                         double[][][] jacobians, double[][] x, double[][] y,
+                                         double[] VARI, double cbwd, double cwvl, long leafsize,
+                                         String[] sequ, double[] MEAN) {
+        final long expectedL = 3;
+        assertEquals(expectedL, l);
+
+        final long expectedM = 1;
+        assertEquals(expectedM, m);
+
+        final long expectedN = 4;
+        assertEquals(expectedN, n);
+
         final double[][][] expectedJacobians = {
                 {
                         {
@@ -90,7 +116,6 @@ public class O2CorrOlciIOTest {
         assertEquals(4, jacobians[2][0].length);
         assertArrayEquals(expectedJacobians, jacobians);
 
-        final double[][] X = O2CorrOlciIO.parseJSON2DimDoubleArray(jsonObject, "X");
         final double[][] expectedX = {
                 {
                         -1.6514456476894992,
@@ -111,12 +136,12 @@ public class O2CorrOlciIOTest {
                         1.5491933384829668
                 }
         };
-        assertNotNull(X);
-        assertEquals(3, X.length);
-        assertEquals(4, X[1].length);
-        assertArrayEquals(expectedX, X);
+        assertNotNull(x);
+        assertEquals(3, x.length);
+        assertEquals(4, x[1].length);
+        assertArrayEquals(expectedX, x);
 
-        final double[][] Y = O2CorrOlciIO.parseJSON2DimDoubleArray(jsonObject, "Y");
+
         final double[][] expectedY = {
                 {
                         0.9293298058188657
@@ -128,12 +153,12 @@ public class O2CorrOlciIOTest {
                         1.0582987928525662
                 }
         };
-        assertNotNull(Y);
-        assertEquals(3, Y.length);
-        assertEquals(1, Y[1].length);
-        assertArrayEquals(expectedY, Y);
+        assertNotNull(y);
+        assertEquals(3, y.length);
+        assertEquals(1, y[1].length);
+        assertArrayEquals(expectedY, y);
 
-        final double[] VARI = O2CorrOlciIO.parseJSON1DimDoubleArray(jsonObject, "VARI");
+
         final double[] expectedVARI = {
                 0.6055300708195136,
                 0.09486832980506345,
@@ -144,19 +169,19 @@ public class O2CorrOlciIOTest {
         assertEquals(4, VARI.length);
         assertArrayEquals(expectedVARI, VARI, 1e-8);
 
-        final double cbwd = O2CorrOlciIO.parseJSONDouble(jsonObject, "cbwd");
+
         final double expectedCbwd = 2.65;
         assertEquals(expectedCbwd, cbwd, 1e-8);
 
-        final double cwvl = O2CorrOlciIO.parseJSONDouble(jsonObject, "cwvl");
+
         final double expectedCwvl = 761.726;
         assertEquals(expectedCwvl, cwvl, 1e-8);
 
-        final long leafsize = O2CorrOlciIO.parseJSONInt(jsonObject, "leafsize");
+
         final long expectedLeafsize = 4;
         assertEquals(expectedLeafsize, leafsize);
 
-        final String[] sequ = O2CorrOlciIO.parseJSON1DimStringArray(jsonObject, "sequ");
+
         final String[] expectedSequ = {
                 "dwvl,bwd,tra,amf",
                 "tra/zero"
@@ -165,7 +190,7 @@ public class O2CorrOlciIOTest {
         assertEquals(2, sequ.length);
         assertArrayEquals(expectedSequ, sequ);
 
-        final double[] MEAN = O2CorrOlciIO.parseJSON1DimDoubleArray(jsonObject, "MEAN");
+
         final double[] expectedMEAN = {
                 1.5257651681785976e-20,
                 2.6499999999997224,
@@ -176,4 +201,5 @@ public class O2CorrOlciIOTest {
         assertEquals(4, MEAN.length);
         assertArrayEquals(expectedMEAN, MEAN, 1e-8);
     }
+
 }
