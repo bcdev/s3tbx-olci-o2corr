@@ -13,14 +13,11 @@ import org.esa.snap.core.gpf.annotations.Parameter;
 import org.esa.snap.core.gpf.annotations.SourceProduct;
 import org.esa.snap.core.gpf.annotations.TargetProduct;
 import org.esa.snap.core.util.ProductUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.esa.snap.core.util.math.MathUtils;
 import org.json.simple.parser.ParseException;
 import smile.neighbor.KDTree;
 
 import java.awt.*;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 
 /**
@@ -50,7 +47,7 @@ public class O2CorrOlciOp extends Operator {
     private Product targetProduct;
 
     @Parameter(description = "Name of altitude band in optional DEM file. Altitude is expected in meters.",
-            label="Name of DEM altitude band")
+            label = "Name of DEM altitude band")
     private String demAltitudeBandName;
 
     @Parameter(defaultValue = "true",
@@ -73,7 +70,7 @@ public class O2CorrOlciOp extends Operator {
     private Band detectorIndexBand;
 
     private Band[] radianceBands;
-    private Band[] lambda0Bands;
+    private Band[] cwlBands;
     private Band[] fwhmBands;
     private Band[] solarFluxBands;
 
@@ -99,14 +96,14 @@ public class O2CorrOlciOp extends Operator {
         }
 
         radianceBands = new Band[5];
-        lambda0Bands = new Band[5];
+        cwlBands = new Band[5];
         fwhmBands = new Band[5];
         solarFluxBands = new Band[5];
-        for (int i = 12; i < 17; i++) {
-            radianceBands[i-12] = l1bProduct.getBand("Oa_" + i + "_radiance");
-            lambda0Bands[i-12] = l1bProduct.getBand("lambda0_band_" + i);
-            fwhmBands[i-12] = l1bProduct.getBand("FWHM_band_" + i);
-            solarFluxBands[i-12] = l1bProduct.getBand("solar_flux_band_" + i);
+        for (int i = 12; i < 17; i++) {    // todo: optimize, consider numBandsToProcess
+            radianceBands[i - 12] = l1bProduct.getBand("Oa_" + i + "_radiance");
+            cwlBands[i - 12] = l1bProduct.getBand("lambda0_band_" + i);
+            fwhmBands[i - 12] = l1bProduct.getBand("FWHM_band_" + i);
+            solarFluxBands[i - 12] = l1bProduct.getBand("solar_flux_band_" + i);
         }
 
         createTargetProduct();
@@ -124,8 +121,8 @@ public class O2CorrOlciOp extends Operator {
         desmileLuts = new DesmileLut[numBandsToProcess];
         desmileKdTrees = new KDTree[numBandsToProcess];
         for (int i = 13; i < lastBandToProcess; i++) {
-            desmileLuts[i] =  O2CorrOlciIO.createDesmileLut(i);
-            desmileKdTrees[i] =  O2CorrOlciIO.createKDTreeForDesmileInterpolation(desmileLuts[i]);
+            desmileLuts[i] = O2CorrOlciIO.createDesmileLut(i);
+            desmileKdTrees[i] = O2CorrOlciIO.createKDTreeForDesmileInterpolation(desmileLuts[i]);
         }
     }
 
@@ -151,12 +148,14 @@ public class O2CorrOlciOp extends Operator {
         }
         ProductUtils.copyTiePointGrids(l1bProduct, targetProduct);
         ProductUtils.copyGeoCoding(l1bProduct, targetProduct);
+
+        setTargetProduct(targetProduct);
     }
 
     @Override
     public void computeTile(Band targetBand, Tile targetTile, ProgressMonitor pm) throws OperatorException {
         Rectangle targetRectangle = targetTile.getRectangle();
-        String bandName = targetBand.getName();
+        String targetBandName = targetBand.getName();
 
         Tile szaTile = getSourceTile(szaBand, targetRectangle);
         Tile ozaTile = getSourceTile(ozaBand, targetRectangle);
@@ -166,12 +165,12 @@ public class O2CorrOlciOp extends Operator {
         Tile l1FlagsTile = getSourceTile(l1bProduct.getRasterDataNode("quality_flags"), targetRectangle);
 
         Tile[] radianceTiles = new Tile[5];
-        Tile[] lambda0Tiles = new Tile[5];
+        Tile[] cwlTiles = new Tile[5];
         Tile[] fwhmTiles = new Tile[5];
         Tile[] solarFluxTiles = new Tile[5];
         for (int i = 0; i < 5; i++) {
             radianceTiles[i] = getSourceTile(radianceBands[i], targetRectangle);
-            lambda0Tiles[i] = getSourceTile(lambda0Bands[i], targetRectangle);
+            cwlTiles[i] = getSourceTile(cwlBands[i], targetRectangle);
             fwhmTiles[i] = getSourceTile(fwhmBands[i], targetRectangle);
             solarFluxTiles[i] = getSourceTile(solarFluxBands[i], targetRectangle);
         }
@@ -181,21 +180,68 @@ public class O2CorrOlciOp extends Operator {
             for (int x = targetRectangle.x; x < targetRectangle.x + targetRectangle.width; x++) {
                 final boolean pixelIsValid = !l1FlagsTile.getSampleBit(x, y, O2CorrOlciConstants.OLCI_INVALID_BIT);
                 if (pixelIsValid) {
+                    // Preparing input data...
+
                     final float sza = szaTile.getSampleFloat(x, y);
                     final float oza = ozaTile.getSampleFloat(x, y);
                     final float altitude = altitudeTile.getSampleFloat(x, y);
                     final float slp = slpTile.getSampleFloat(x, y);
                     final float detectorIndex = detectorIndexTile.getSampleFloat(x, y);
 
+                    final float amf = (float) (1.0 / Math.cos(sza * MathUtils.DTOR) + 1.0 / Math.cos(oza * MathUtils.DTOR));
+
                     float[] radiance = new float[5];
-                    float[] lambda0 = new float[5];
+                    float[] r = new float[5];
+                    float[] cwl = new float[5];
                     float[] fwhm = new float[5];
                     float[] solarFlux = new float[5];
-                    for (int i = 12; i < 17; i++) {
+                    for (int i = 0; i < 5; i++) {    // 12, 13, 14, 15, 16
                         radiance[i] = radianceTiles[i].getSampleFloat(x, y);
-                        lambda0[i] = lambda0Tiles[i].getSampleFloat(x, y);
+                        cwl[i] = cwlTiles[i].getSampleFloat(x, y);
                         fwhm[i] = fwhmTiles[i].getSampleFloat(x, y);
                         solarFlux[i] = solarFluxTiles[i].getSampleFloat(x, y);
+                        r[i] = radiance[i] / solarFlux[i];
+                    }
+
+                    final float dlam = cwl[4] - cwl[0];
+                    final float drad = radiance[4] - radiance[0];
+                    float[] radianceAbsFree = new float[3];
+                    float[] trans = new float[3];
+//                    float[] tauAmf = new float[3];
+                    for (int i = 0; i < 3; i++) {   // 13, 14, 15
+                        if (dlam > 0.0001) {
+                            final float grad = drad / dlam;
+                            radianceAbsFree[i] = r[i] + grad * (cwl[i] - cwl[0]);
+                        } else {
+                            radianceAbsFree[i] = Float.NaN;
+                        }
+                        trans[i] = r[i] / radianceAbsFree[i];
+//                        tauAmf[i] = (float) -Math.log(trans[i] / amf);
+                        cwl[i] += O2CorrOlciAlgorithm.overcorrectLambda(detectorIndex,
+                                                                        O2CorrOlciConstants.DWL_CORR_OFFSET[i]);
+                    }
+
+                    // Processing data...
+                    for (int i = 0; i < numBandsToProcess; i++) {   // 13, 14, 15
+                        final float transDesmiled = (float) O2CorrOlciAlgorithm.desmileTransmission(cwl[i], fwhm[i],
+                                                                                                    amf,
+                                                                                                    trans[i],
+                                                                                                    desmileKdTrees[i],
+                                                                                                    desmileLuts[i]);
+                        final float transDesmiledRectified =
+                                (float) O2CorrOlciAlgorithm.rectifyDesmiledTransmission(transDesmiled, amf, i + 13);
+
+                        if (targetBandName.startsWith("trans")) {
+                            targetTile.setSample(x, y, transDesmiledRectified);
+                        } else if (targetBandName.startsWith("press")) {
+                            // todo
+                        } else if (targetBandName.startsWith("surface")) {
+                            // todo
+                        } else {
+                            // radiance
+                            float correctedRadiance = radianceAbsFree[i] * solarFlux[i] * transDesmiledRectified;
+                            targetTile.setSample(x, y, correctedRadiance);
+                        }
                     }
                 }
             }

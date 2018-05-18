@@ -1,14 +1,7 @@
 package org.esa.s3tbx.olci.o2corr;
 
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import smile.neighbor.KDTree;
 import smile.neighbor.Neighbor;
-
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 
 /**
  * Class providing the algorithm for OLCO O2 correction
@@ -57,37 +50,6 @@ public class O2CorrOlciAlgorithm {
     }
 
     /**
-     * This calculates the 'rectified' transmission in given band (Zenith Sun --> Nadir observation: amf=2), given
-     * a transmission in given band and the corresponding geometry.
-     *
-     * @param bandIndex     - index of given band
-     * @param desmiledTrans - input desmiled transmission
-     * @param configData    - configuration data
-     * @return rectifiedDesmiledTrans - the rectified desmiled transmission
-     */
-    public static double rectifyDesmiledTrans(int bandIndex, double desmiledTrans, O2CorrConfigData configData) {
-        // todo
-        double rectifiedDesmiledTrans = 0.0;
-        return rectifiedDesmiledTrans;
-    }
-
-    /**
-     * This calculates smile corrected transmission given the transmission in given band and additionally
-     * the wavelength, bandwidth and the amf.
-     *
-     * @param bandIndex  - index of given band
-     * @param trans      - input transmission
-     * @param amf        - air mass factor
-     * @param configData - configuration data
-     * @return desmiledTrans - the desmiled transmission
-     */
-    public static double desmileTrans(int bandIndex, double trans, double amf, O2CorrConfigData configData) {
-        // todo
-        double desmiledTrans = 0.0;
-        return desmiledTrans;
-    }
-
-    /**
      * Provides a simple estimate for pressure from given height.
      *
      * @param height - height in m
@@ -97,32 +59,34 @@ public class O2CorrOlciAlgorithm {
         return Math.pow(1013.25 * (1.0 - (height * 0.0065 / 288.15)), 5.2555);
     }
 
-    public static double overcorrectLambda(double inputWvl, int cam, double dwvl) {
-        // todo
-        double outputWvl = 0.0;
-        return outputWvl;
+    public static float overcorrectLambda(float cam, double[] dwvl) {
+        double delta = 0.0;
+        for (int i = 0; i < 5; i++) {
+            delta = (cam == i + 1) ? dwvl[i] : 0.0;
+        }
+
+        return (float) delta;
     }
 
     /**
      * Desmile input transmission using interpolation of Desmile LUT, using KD search.
      * Java version (simplified) of 'lut2func_internal' in kd_interpolator.py of RP Python breadboard.
      *
-     * @param cwl - central wavelength
-     * @param fwhm - band width (full width at half maximum)
-     * @param amf - air mass factor
+     * @param cwl   - central wavelength
+     * @param fwhm  - band width (full width at half maximum)
+     * @param amf   - air mass factor
      * @param trans - original transmission
-     * @param tree - the KD Tree. Should have been once initialized at earlier stage.
-     * @param lut - the desmile LUT held in DesmileLut object. Should have been once initialized at earlier stage.
-     *
+     * @param tree  - the KD Tree. Should have been once initialized at earlier stage.
+     * @param lut   - the desmile LUT held in DesmileLut object. Should have been once initialized at earlier stage.
      * @return trans_desmiled
      */
-    public double desmileTransmission(double cwl, double fwhm, double amf, double trans,
+    public static double desmileTransmission(double cwl, double fwhm, double amf, double trans,
                                       KDTree<double[]> tree, DesmileLut lut) {
 
         double[] x = new double[]{cwl, fwhm, amf, trans};
         final double[] wo = new double[lut.getVARI().length];
         for (int i = 0; i < lut.getVARI().length; i++) {
-            wo[i] = x[i] - lut.getMEAN()[i]/lut.getVARI()[i];
+            wo[i] = x[i] - lut.getMEAN()[i] / lut.getVARI()[i];
         }
 
         final int nNearest = (int) Math.pow(2.0, lut.getN());   // should be 16
@@ -148,11 +112,11 @@ public class O2CorrOlciAlgorithm {
             if (valid) {
                 for (int k = 0; k < wo.length; k++) {
                     final double dx = (wo[k] - lut.getX()[indices[j]][k]) * lut.getVARI()[k];
-                    temp += (lut.getY()[indices[j]][k] + dx*lut.getJACO()[0][indices[j]][k]) * weight[j];
+                    temp += (lut.getY()[indices[j]][k] + dx * lut.getJACO()[0][indices[j]][k]) * weight[j];
                 }
             }
         }
-        return temp/norm;
+        return temp / norm;
     }
 
     /**
@@ -160,18 +124,17 @@ public class O2CorrOlciAlgorithm {
      * Java version of 'generate_tra2recti' in o2corr__io_v3.py of RP Python breadboard.
      *
      * @param trans_desmiled - desmiled transmission
-     * @param amf - air mass factor
-     * @param bandIndex - band index
-     *
+     * @param amf            - air mass factor
+     * @param bandIndex      - band index
      * @return trans_rectified
      */
-    public double rectifyDesmiledTransmission(double trans_desmiled, double amf, int bandIndex) {
+    public static double rectifyDesmiledTransmission(double trans_desmiled, double amf, int bandIndex) {
         double[] x = new double[]{trans_desmiled, amf};
 
         final double tau = Math.log(x[0]);
         final double amfNew = amf - 2.0;
-        final double[] p = O2CorrOlciConstants.pCoeffsRectification[bandIndex-13];
+        final double[] p = O2CorrOlciConstants.pCoeffsRectification[bandIndex - 13];
 
-        return p[0] + p[1]*tau + p[2]*tau*tau + p[3]*amf + p[4]*amf*amf + p[5]*tau*Math.sqrt(amf) + p[7]*x[0];
+        return p[0] + p[1] * tau + p[2] * tau * tau + p[3] * amf + p[4] * amf * amf + p[5] * tau * Math.sqrt(amf) + p[7] * x[0];
     }
 }

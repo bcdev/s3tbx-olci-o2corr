@@ -13,6 +13,30 @@ public class O2CorrOlciConstants {
     public static double[] cwvl = {761.726, 764.825, 767.917};
     public static double[] cbdw = {2.65, 3.7, 2.65};
 
+    //
+    public static double[][] DWL_CORR_OFFSET = {
+            {
+                    0.0,-0.1,-0.15,-0.15,-0.25
+            },
+            {
+                    -0.05,-0.1,-0.15,-0.15,-0.25
+            },
+            {
+                    0.0,-0.1,-0.15,-0.15,-0.25
+            }
+    };
+    public static double[][] DWL_CORR_D_OFFSET = {
+            {
+                    -0.05,-0.1,-0.15,-0.15,-0.25
+            },
+            {
+                    -0.05,-0.1,-0.15,-0.15,-0.25
+            },
+            {
+                    -0.05,-0.1,-0.15,-0.15,-0.25
+            }
+    };
+
     // for bands 13-15, taken from O2_tra2recti_model_coeff_*.json:
     public static double[][] pCoeffsRectification = {
             {
