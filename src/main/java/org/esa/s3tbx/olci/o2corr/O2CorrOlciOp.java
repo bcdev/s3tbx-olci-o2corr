@@ -1,9 +1,7 @@
 package org.esa.s3tbx.olci.o2corr;
 
 import com.bc.ceres.core.ProgressMonitor;
-import org.esa.snap.core.datamodel.Band;
-import org.esa.snap.core.datamodel.Product;
-import org.esa.snap.core.datamodel.ProductData;
+import org.esa.snap.core.datamodel.*;
 import org.esa.snap.core.gpf.Operator;
 import org.esa.snap.core.gpf.OperatorException;
 import org.esa.snap.core.gpf.OperatorSpi;
@@ -63,10 +61,11 @@ public class O2CorrOlciOp extends Operator {
     private int lastBandToProcess;
     private int numBandsToProcess;
 
-    private Band szaBand;
-    private Band ozaBand;
-    private Band altitudeBand;
-    private Band slpBand;
+    private TiePointGrid szaBand;
+    private TiePointGrid ozaBand;
+    private TiePointGrid slpBand;
+    
+    private RasterDataNode altitudeBand;
     private Band detectorIndexBand;
 
     private Band[] radianceBands;
@@ -82,15 +81,15 @@ public class O2CorrOlciOp extends Operator {
         validateSourceProduct();
 
         lastBandToProcess = processOnlyBand13 ? 13 : 15;
-        numBandsToProcess = lastBandToProcess - 13;
+        numBandsToProcess = lastBandToProcess - 13 + 1;
 
-        szaBand = l1bProduct.getBand("SZA");
-        ozaBand = l1bProduct.getBand("OZA");
-        slpBand = l1bProduct.getBand("sea_level_pressure");
+        szaBand = l1bProduct.getTiePointGrid("SZA");
+        ozaBand = l1bProduct.getTiePointGrid("OZA");
+        slpBand = l1bProduct.getTiePointGrid("sea_level_pressure");
         detectorIndexBand = l1bProduct.getBand("detector_index");
 
         if (demProduct != null) {
-            altitudeBand = demProduct.getBand(demAltitudeBandName);
+            altitudeBand = demProduct.getRasterDataNode(demAltitudeBandName);
         } else {
             altitudeBand = l1bProduct.getBand("altitude");
         }
@@ -100,7 +99,7 @@ public class O2CorrOlciOp extends Operator {
         fwhmBands = new Band[5];
         solarFluxBands = new Band[5];
         for (int i = 12; i < 17; i++) {    // todo: optimize, consider numBandsToProcess
-            radianceBands[i - 12] = l1bProduct.getBand("Oa_" + i + "_radiance");
+            radianceBands[i - 12] = l1bProduct.getBand("Oa" + i + "_radiance");
             cwlBands[i - 12] = l1bProduct.getBand("lambda0_band_" + i);
             fwhmBands[i - 12] = l1bProduct.getBand("FWHM_band_" + i);
             solarFluxBands[i - 12] = l1bProduct.getBand("solar_flux_band_" + i);
@@ -120,9 +119,9 @@ public class O2CorrOlciOp extends Operator {
     private void initDesmileAuxdata() throws IOException, ParseException {
         desmileLuts = new DesmileLut[numBandsToProcess];
         desmileKdTrees = new KDTree[numBandsToProcess];
-        for (int i = 13; i < lastBandToProcess; i++) {
-            desmileLuts[i] = O2CorrOlciIO.createDesmileLut(i);
-            desmileKdTrees[i] = O2CorrOlciIO.createKDTreeForDesmileInterpolation(desmileLuts[i]);
+        for (int i = 13; i <= lastBandToProcess; i++) {
+            desmileLuts[i-13] = O2CorrOlciIO.createDesmileLut(i);
+            desmileKdTrees[i-13] = O2CorrOlciIO.createKDTreeForDesmileInterpolation(desmileLuts[i-13]);
         }
     }
 
@@ -137,7 +136,7 @@ public class O2CorrOlciOp extends Operator {
         targetProduct.setStartTime(l1bProduct.getStartTime());
         targetProduct.setEndTime(l1bProduct.getEndTime());
 
-        for (int i = 13; i < lastBandToProcess; i++) {
+        for (int i = 13; i <= lastBandToProcess; i++) {
             targetProduct.addBand("trans_" + i, ProductData.TYPE_FLOAT32);
             // todo: add pressure, surface, corrected radiance
         }
@@ -204,28 +203,28 @@ public class O2CorrOlciOp extends Operator {
                     }
 
                     final float dlam = cwl[4] - cwl[0];
-                    final float drad = radiance[4] - radiance[0];
-                    float[] radianceAbsFree = new float[3];
-                    float[] trans = new float[3];
+                    final float drad = r[4] - r[0];
+                    float[] trans = new float[5];
+                    float[] radianceAbsFree = new float[5];
 //                    float[] tauAmf = new float[3];
-                    for (int i = 0; i < 3; i++) {   // 13, 14, 15
+                    for (int i = 0; i < 3; i++) {   // 13, 14, 15 !!
                         if (dlam > 0.0001) {
                             final float grad = drad / dlam;
-                            radianceAbsFree[i] = r[i] + grad * (cwl[i] - cwl[0]);
+                            radianceAbsFree[i+1] = r[0] + grad * (cwl[i+1] - cwl[0]);
                         } else {
-                            radianceAbsFree[i] = Float.NaN;
+                            radianceAbsFree[i+1] = Float.NaN;
                         }
-                        trans[i] = r[i] / radianceAbsFree[i];
-//                        tauAmf[i] = (float) -Math.log(trans[i] / amf);
-                        cwl[i] += O2CorrOlciAlgorithm.overcorrectLambda(detectorIndex,
+                        trans[i+1] = r[i+1] / radianceAbsFree[i+1];
+                        cwl[i+1] += O2CorrOlciAlgorithm.overcorrectLambda(detectorIndex,
                                                                         O2CorrOlciConstants.DWL_CORR_OFFSET[i]);
                     }
 
                     // Processing data...
                     for (int i = 0; i < numBandsToProcess; i++) {   // 13, 14, 15
-                        final float transDesmiled = (float) O2CorrOlciAlgorithm.desmileTransmission(cwl[i], fwhm[i],
+                        final double dwl = cwl[i+1] - O2CorrOlciConstants.cwvl[i];
+                        final float transDesmiled = (float) O2CorrOlciAlgorithm.desmileTransmission(dwl, fwhm[i+1],
                                                                                                     amf,
-                                                                                                    trans[i],
+                                                                                                    trans[i+1],
                                                                                                     desmileKdTrees[i],
                                                                                                     desmileLuts[i]);
                         final float transDesmiledRectified =
@@ -239,7 +238,7 @@ public class O2CorrOlciOp extends Operator {
                             // todo
                         } else {
                             // radiance
-                            float correctedRadiance = radianceAbsFree[i] * solarFlux[i] * transDesmiledRectified;
+                            float correctedRadiance = radianceAbsFree[i+1] * solarFlux[i+1] * transDesmiledRectified;
                             targetTile.setSample(x, y, correctedRadiance);
                         }
                     }

@@ -1,14 +1,22 @@
 package org.esa.s3tbx.olci.o2corr;
 
+import com.bc.ceres.core.ProgressMonitor;
 import com.google.common.primitives.Doubles;
+import org.esa.snap.core.gpf.GPF;
+import org.esa.snap.core.gpf.OperatorSpi;
+import org.esa.snap.core.gpf.OperatorSpiRegistry;
+import org.esa.snap.core.util.ResourceInstaller;
+import org.esa.snap.core.util.SystemUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import smile.neighbor.KDTree;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -89,10 +97,10 @@ public class O2CorrOlciIO {
     }
 
     public static DesmileLut createDesmileLut(int bandIndex) throws IOException, ParseException {
-        final String jsonFile = O2CorrOlciOp.class.getResource("O2_desmile_lut_" + bandIndex + ".json").getFile();
-
+        final String jsonFilename = "O2_desmile_lut_" + bandIndex + ".json";
+        final Path jsonPath =  SystemUtils.getAuxDataPath().resolve("o2corr" + File.separator + jsonFilename);
         JSONParser jsonParser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonFile));
+        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonPath.toString()));
 
         // parse JSON file...
         final long L = O2CorrOlciIO.parseJSONInt(jsonObject, "L");
@@ -111,5 +119,16 @@ public class O2CorrOlciIO {
         return new DesmileLut(L, M, N, X, Y, jacobians, MEAN, VARI, cwvl, cbwd, leafsize, sequ);
     }
 
+
+    static Path installAuxdata() throws IOException {
+        OperatorSpiRegistry operatorSpiRegistry = GPF.getDefaultInstance().getOperatorSpiRegistry();
+        OperatorSpi spi = operatorSpiRegistry.getOperatorSpi("O2CorrOlci");
+        String version = "v" + spi.getOperatorDescriptor().getVersion();
+        Path auxdataDirectory = SystemUtils.getAuxDataPath().resolve("o2corr");
+        final Path sourceDirPath = ResourceInstaller.findModuleCodeBasePath(O2CorrOlciOp.class).resolve("auxdata/luts");
+        final ResourceInstaller resourceInstaller = new ResourceInstaller(sourceDirPath, auxdataDirectory);
+        resourceInstaller.install(".*", ProgressMonitor.NULL);
+        return auxdataDirectory;
+    }
 
 }

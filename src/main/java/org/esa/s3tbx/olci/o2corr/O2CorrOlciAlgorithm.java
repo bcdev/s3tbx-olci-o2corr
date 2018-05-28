@@ -72,7 +72,7 @@ public class O2CorrOlciAlgorithm {
      * Desmile input transmission using interpolation of Desmile LUT, using KD search.
      * Java version (simplified) of 'lut2func_internal' in kd_interpolator.py of RP Python breadboard.
      *
-     * @param cwl   - central wavelength
+     * @param dwl   - central wavelength
      * @param fwhm  - band width (full width at half maximum)
      * @param amf   - air mass factor
      * @param trans - original transmission
@@ -80,16 +80,17 @@ public class O2CorrOlciAlgorithm {
      * @param lut   - the desmile LUT held in DesmileLut object. Should have been once initialized at earlier stage.
      * @return trans_desmiled
      */
-    public static double desmileTransmission(double cwl, double fwhm, double amf, double trans,
+    public static double desmileTransmission(double dwl, double fwhm, double amf, double trans,
                                       KDTree<double[]> tree, DesmileLut lut) {
 
-        double[] x = new double[]{cwl, fwhm, amf, trans};
+        double[] x = new double[]{dwl, fwhm, trans, amf};
         final double[] wo = new double[lut.getVARI().length];
         for (int i = 0; i < lut.getVARI().length; i++) {
-            wo[i] = x[i] - lut.getMEAN()[i] / lut.getVARI()[i];
+            wo[i] = (x[i] - lut.getMEAN()[i]) / lut.getVARI()[i];
         }
 
-        final int nNearest = (int) Math.pow(2.0, lut.getN());   // should be 16
+//        final int nNearest = (int) Math.pow(2.0, lut.getN());   // should be 16
+        final int nNearest = 1;   // see Python: func(x, 1) !!!
         final Neighbor<double[], double[]>[] neighbors = tree.knn(wo, nNearest);
         final double[] distances = new double[neighbors.length];
         final int[] indices = new int[neighbors.length];
@@ -112,7 +113,8 @@ public class O2CorrOlciAlgorithm {
             if (valid) {
                 for (int k = 0; k < wo.length; k++) {
                     final double dx = (wo[k] - lut.getX()[indices[j]][k]) * lut.getVARI()[k];
-                    temp += (lut.getY()[indices[j]][k] + dx * lut.getJACO()[0][indices[j]][k]) * weight[j];
+//                    temp += (lut.getY()[indices[j]][k] + dx * lut.getJACO()[0][indices[j]][k]) * weight[j];
+                    temp += (lut.getY()[indices[j]][0] + dx * lut.getJACO()[indices[j]][0][k]) * weight[j];
                 }
             }
         }

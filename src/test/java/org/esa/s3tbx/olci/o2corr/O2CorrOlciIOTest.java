@@ -2,22 +2,33 @@ package org.esa.s3tbx.olci.o2corr;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import smile.neighbor.KDTree;
 import smile.neighbor.Neighbor;
 
 import java.io.FileReader;
+import java.nio.file.Path;
 
 import static org.junit.Assert.*;
 
+
 public class O2CorrOlciIOTest {
+
+    private Path installAuxdataPath;
+
+    @Before
+    public void setUp() throws Exception {
+        installAuxdataPath = O2CorrOlciIO.installAuxdata();
+    }
+
 
     @Test
     public void testParseJsonFile_correctionModelCoeff() throws Exception {
-        final String jsonFile = getClass().getResource("O2_correction_model_coeff_13_amf.json").getFile();
-
+        final Path pathJSON = installAuxdataPath.resolve("O2_correction_model_coeff_13_amf.json");
         JSONParser jsonParser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonFile));
+        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(pathJSON.toString()));
 
         final double cwvl = O2CorrOlciIO.parseJSONDouble(jsonObject, "cwvl");
         final double expectedCwvl = 761.726;
@@ -42,10 +53,9 @@ public class O2CorrOlciIOTest {
 
     @Test
     public void testParseJsonFile_desmileLut() throws Exception {
-        final String jsonFile = getClass().getResource("O2_desmile_lut_TEST.json").getFile();
-
+        final Path pathJSON = installAuxdataPath.resolve("O2_desmile_lut_TEST.json");
         JSONParser jsonParser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonFile));
+        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(pathJSON.toString()));
 
         // parse JSON file...
         final long L = O2CorrOlciIO.parseJSONInt(jsonObject, "L");
@@ -200,6 +210,14 @@ public class O2CorrOlciIOTest {
         assertNotNull(MEAN);
         assertEquals(4, MEAN.length);
         assertArrayEquals(expectedMEAN, MEAN, 1e-8);
+    }
+
+    @Test
+//    @Ignore
+    public void testInstallAuxdata() throws Exception {
+        Path auxPath = O2CorrOlciIO.installAuxdata();
+        assertNotNull(auxPath);
+
     }
 
 }
