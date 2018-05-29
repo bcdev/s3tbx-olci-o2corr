@@ -181,35 +181,34 @@ public class O2CorrOlciOp extends Operator {
                 if (pixelIsValid) {
                     // Preparing input data...
 
-                    final float sza = szaTile.getSampleFloat(x, y);
-                    final float oza = ozaTile.getSampleFloat(x, y);
-                    final float altitude = altitudeTile.getSampleFloat(x, y);
-                    final float slp = slpTile.getSampleFloat(x, y);
+                    final double sza = szaTile.getSampleDouble(x, y);
+                    final double oza = ozaTile.getSampleDouble(x, y);
+                    final double altitude = altitudeTile.getSampleDouble(x, y);
+                    final double slp = slpTile.getSampleDouble(x, y);
                     final float detectorIndex = detectorIndexTile.getSampleFloat(x, y);
 
-                    final float amf = (float) (1.0 / Math.cos(sza * MathUtils.DTOR) + 1.0 / Math.cos(oza * MathUtils.DTOR));
+                    final double amf = (1.0 / Math.cos(sza * MathUtils.DTOR) + 1.0 / Math.cos(oza * MathUtils.DTOR));
 
-                    float[] radiance = new float[5];
-                    float[] r = new float[5];
-                    float[] cwl = new float[5];
-                    float[] fwhm = new float[5];
-                    float[] solarFlux = new float[5];
+                    double[] radiance = new double[5];
+                    double[] r = new double[5];
+                    double[] cwl = new double[5];
+                    double[] fwhm = new double[5];
+                    double[] solarFlux = new double[5];
                     for (int i = 0; i < 5; i++) {    // 12, 13, 14, 15, 16
-                        radiance[i] = radianceTiles[i].getSampleFloat(x, y);
-                        cwl[i] = cwlTiles[i].getSampleFloat(x, y);
-                        fwhm[i] = fwhmTiles[i].getSampleFloat(x, y);
-                        solarFlux[i] = solarFluxTiles[i].getSampleFloat(x, y);
+                        radiance[i] = radianceTiles[i].getSampleDouble(x, y);
+                        cwl[i] = cwlTiles[i].getSampleDouble(x, y);
+                        fwhm[i] = fwhmTiles[i].getSampleDouble(x, y);
+                        solarFlux[i] = solarFluxTiles[i].getSampleDouble(x, y);
                         r[i] = radiance[i] / solarFlux[i];
                     }
 
-                    final float dlam = cwl[4] - cwl[0];
-                    final float drad = r[4] - r[0];
-                    float[] trans = new float[5];
-                    float[] radianceAbsFree = new float[5];
-//                    float[] tauAmf = new float[3];
+                    final double dlam = cwl[4] - cwl[0];
+                    final double drad = r[4] - r[0];
+                    double[] trans = new double[5];
+                    double[] radianceAbsFree = new double[5];
                     for (int i = 0; i < 3; i++) {   // 13, 14, 15 !!
                         if (dlam > 0.0001) {
-                            final float grad = drad / dlam;
+                            final double grad = drad / dlam;
                             radianceAbsFree[i+1] = r[0] + grad * (cwl[i+1] - cwl[0]);
                         } else {
                             radianceAbsFree[i+1] = Float.NaN;
@@ -222,13 +221,13 @@ public class O2CorrOlciOp extends Operator {
                     // Processing data...
                     for (int i = 0; i < numBandsToProcess; i++) {   // 13, 14, 15
                         final double dwl = cwl[i+1] - O2CorrOlciConstants.cwvl[i];
-                        final float transDesmiled = (float) O2CorrOlciAlgorithm.desmileTransmission(dwl, fwhm[i+1],
+                        final double transDesmiled = O2CorrOlciAlgorithm.desmileTransmission(dwl, fwhm[i+1],
                                                                                                     amf,
                                                                                                     trans[i+1],
                                                                                                     desmileKdTrees[i],
                                                                                                     desmileLuts[i]);
-                        final float transDesmiledRectified =
-                                (float) O2CorrOlciAlgorithm.rectifyDesmiledTransmission(transDesmiled, amf, i + 13);
+                        final double transDesmiledRectified =
+                                O2CorrOlciAlgorithm.rectifyDesmiledTransmission(transDesmiled, amf, i + 13);
 
                         if (targetBandName.startsWith("trans")) {
                             targetTile.setSample(x, y, transDesmiledRectified);
@@ -238,7 +237,8 @@ public class O2CorrOlciOp extends Operator {
                             // todo
                         } else {
                             // radiance
-                            float correctedRadiance = radianceAbsFree[i+1] * solarFlux[i+1] * transDesmiledRectified;
+                            final double correctedRadiance =
+                                    radianceAbsFree[i+1] * solarFlux[i+1] * transDesmiledRectified;
                             targetTile.setSample(x, y, correctedRadiance);
                         }
                     }

@@ -81,7 +81,7 @@ public class O2CorrOlciAlgorithm {
      * @return trans_desmiled
      */
     public static double desmileTransmission(double dwl, double fwhm, double amf, double trans,
-                                      KDTree<double[]> tree, DesmileLut lut) {
+                                             KDTree<double[]> tree, DesmileLut lut) {
 
         double[] x = new double[]{dwl, fwhm, trans, amf};
         final double[] wo = new double[lut.getVARI().length];
@@ -103,7 +103,7 @@ public class O2CorrOlciAlgorithm {
         double[] weight = new double[distances.length];
         double norm = 0.0;
         for (int i = 0; i < weight.length; i++) {
-            weight[i] = Double.isInfinite(distances[i]) ? small : distances[i] + small;
+            weight[i] = Double.isInfinite(distances[i]) ? 0.0 : 1.0;
             norm += weight[i];
         }
 
@@ -111,14 +111,19 @@ public class O2CorrOlciAlgorithm {
         for (int j = 0; j < nNearest; j++) {
             final boolean valid = !Double.isInfinite(distances[j]);
             if (valid) {
+                double dxCrossJaco = 0.0;
                 for (int k = 0; k < wo.length; k++) {
                     final double dx = (wo[k] - lut.getX()[indices[j]][k]) * lut.getVARI()[k];
-//                    temp += (lut.getY()[indices[j]][k] + dx * lut.getJACO()[0][indices[j]][k]) * weight[j];
-                    temp += (lut.getY()[indices[j]][0] + dx * lut.getJACO()[indices[j]][0][k]) * weight[j];
+                    final double jaco = lut.getJACO()[indices[j]][0][k];
+                    dxCrossJaco += (dx * jaco);
                 }
+                temp += (lut.getY()[indices[j]][0] + dxCrossJaco * weight[j]);
             }
         }
-        return temp / norm;
+
+        double kdInterpolResult = temp / norm;
+
+        return trans / kdInterpolResult;
     }
 
     /**
@@ -131,12 +136,13 @@ public class O2CorrOlciAlgorithm {
      * @return trans_rectified
      */
     public static double rectifyDesmiledTransmission(double trans_desmiled, double amf, int bandIndex) {
-        double[] x = new double[]{trans_desmiled, amf};
-
-        final double tau = Math.log(x[0]);
-        final double amfNew = amf - 2.0;
+        final double tau = Math.log(trans_desmiled);
+        final double amfM = amf - 2.0;
         final double[] p = O2CorrOlciConstants.pCoeffsRectification[bandIndex - 13];
 
-        return p[0] + p[1] * tau + p[2] * tau * tau + p[3] * amf + p[4] * amf * amf + p[5] * tau * Math.sqrt(amf) + p[7] * x[0];
+        final double rectifyFactor = p[0] + p[1] * tau + p[2] * tau * tau + p[3] * amfM + p[4] * amfM * amfM +
+                p[5] * tau * Math.sqrt(amfM) + p[7] * trans_desmiled;
+
+        return trans_desmiled / rectifyFactor;
     }
 }
