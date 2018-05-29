@@ -11,26 +11,17 @@ import smile.neighbor.Neighbor;
 public class O2CorrOlciAlgorithm {
 
     /**
-     * Provides config data for OLCI O2 correction
-     */
-    public static O2CorrConfigData getO2CorrConfigData() {
-        // todo
-        return null;
-    }
-
-    /**
      * This calculates the 1to1 transmission  ('rectified') (Zenith Sun --> Nadir observation: amf=2) at
      * given band, which would be measured without scattering. Usefull only for comparison.
      *
-     * @param bandIndex  - index of given band
      * @param press      - input pressure
-     * @param configData - configuration data
-     * @return rectifiedTrans - the rectified transmission
+     * @param bandIndex  - index of given band
+     * @return the rectified transmission
      */
-    public static double press2RectifiedTrans(int bandIndex, double press, O2CorrConfigData configData) {
-        // todo
-        double rectifiedTrans = 0.0;
-        return rectifiedTrans;
+    public static double press2Trans(double press, int bandIndex) {
+        final double[] p = O2CorrOlciConstants.pCoeffsPress2Tra[bandIndex - 13];
+        double pressPolynom = p[0] + p[1] * press + p[2] * press * press;
+        return Math.exp(-pressPolynom);
     }
 
     /**
@@ -38,25 +29,24 @@ public class O2CorrOlciAlgorithm {
      * observation: amf=2), which would be measured in given band without scattering. Usefull for a
      * first object height estimation (but *not* for dark targets (ocean!!!!))
      *
+     * @param trans_rectified - input rectified transmission
      * @param bandIndex      - index of given band
-     * @param rectifiedTrans - input rectified transmission
-     * @param configData     - configuration data
-     * @return press - the pressure
+     * @return the pressure
      */
-    public static double trans2Press(int bandIndex, double rectifiedTrans, O2CorrConfigData configData) {
-        // todo
-        double press = 0.0;
-        return press;
+    public static double trans2Press(double trans_rectified, int bandIndex) {
+        final double[] p = O2CorrOlciConstants.pCoeffsTra2Press[bandIndex - 13];
+        return p[0] + p[1] * trans_rectified + p[2] * trans_rectified * trans_rectified;
     }
 
     /**
      * Provides a simple estimate for pressure from given height.
      *
      * @param height - height in m
+     * @param slp - sea level pressure
      * @return pressure in hPa
      */
-    public static double height2press(double height) {
-        return Math.pow(1013.25 * (1.0 - (height * 0.0065 / 288.15)), 5.2555);
+    public static double height2press(double height, double slp) {
+        return slp * Math.pow((1.0 - (height * 0.0065 / 288.15)), 5.2555);
     }
 
     public static float overcorrectLambda(float cam, double[] dwvl) {
@@ -89,7 +79,6 @@ public class O2CorrOlciAlgorithm {
             wo[i] = (x[i] - lut.getMEAN()[i]) / lut.getVARI()[i];
         }
 
-//        final int nNearest = (int) Math.pow(2.0, lut.getN());   // should be 16
         final int nNearest = 1;   // see Python: func(x, 1) !!!
         final Neighbor<double[], double[]>[] neighbors = tree.knn(wo, nNearest);
         final double[] distances = new double[neighbors.length];
@@ -99,7 +88,6 @@ public class O2CorrOlciAlgorithm {
             indices[distances.length - i - 1] = neighbors[i].index;
         }
 
-        final double small = 1.E-7;
         double[] weight = new double[distances.length];
         double norm = 0.0;
         for (int i = 0; i < weight.length; i++) {

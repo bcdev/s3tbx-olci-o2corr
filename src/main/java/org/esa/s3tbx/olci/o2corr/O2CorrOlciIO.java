@@ -2,7 +2,9 @@ package org.esa.s3tbx.olci.o2corr;
 
 import com.bc.ceres.core.ProgressMonitor;
 import com.google.common.primitives.Doubles;
+import org.esa.snap.core.datamodel.Product;
 import org.esa.snap.core.gpf.GPF;
+import org.esa.snap.core.gpf.OperatorException;
 import org.esa.snap.core.gpf.OperatorSpi;
 import org.esa.snap.core.gpf.OperatorSpiRegistry;
 import org.esa.snap.core.util.ResourceInstaller;
@@ -26,6 +28,15 @@ import java.util.stream.Collectors;
  * @author olafd
  */
 public class O2CorrOlciIO {
+
+    public static void validateSourceProduct(Product l1bProduct) {
+        if (!l1bProduct.getProductType().contains("OL_1")) {
+            // current products have product type 'OL_1_ERR'
+            throw new OperatorException("Input product does not seem to be an OLCI L1b product. " +
+                                                "Product type must start with 'OL_1_'.");
+        }
+    }
+
 
     public static double parseJSONDouble(JSONObject jsonObject, String variableName) {
         return (double) jsonObject.get(variableName);
