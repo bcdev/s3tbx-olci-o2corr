@@ -1,6 +1,7 @@
 package org.esa.s3tbx.olci.o2corr;
 
 import com.bc.ceres.core.ProgressMonitor;
+import org.esa.snap.collocation.CollocateOp;
 import org.esa.snap.core.datamodel.*;
 import org.esa.snap.core.gpf.Operator;
 import org.esa.snap.core.gpf.OperatorException;
@@ -37,7 +38,7 @@ public class O2CorrOlciOp extends Operator {
             label = "OLCI L1b product")
     private Product l1bProduct;
 
-    @SourceProduct(description = "DEM product",
+    @SourceProduct(description = "DEM product (possible improvement compared to OLCI altitude band)",
             optional = true,
             label = "DEM product")
     private Product demProduct;
@@ -54,7 +55,7 @@ public class O2CorrOlciOp extends Operator {
             label = "Only process OLCI band 13 (761.25 nm)")
     private boolean processOnlyBand13;
 
-    @Parameter(defaultValue = "false",
+    @Parameter(defaultValue = "true",
             label = "Write corrected radiances",
             description = "If set to true, corrected radiances of processed band(s) will be written to target product.")
     private boolean writeCorrectedRadiances;
@@ -65,6 +66,8 @@ public class O2CorrOlciOp extends Operator {
     private TiePointGrid szaBand;
     private TiePointGrid ozaBand;
 
+    private RasterDataNode demAltitudeBand;
+    private RasterDataNode collocationFlagsBand;
     private RasterDataNode altitudeBand;
     private RasterDataNode slpBand;
     private Band detectorIndexBand;
@@ -76,6 +79,8 @@ public class O2CorrOlciOp extends Operator {
 
     private KDTree<double[]>[] desmileKdTrees;
     private DesmileLut[] desmileLuts;
+
+    private Product collocatedDemProduct;
 
     @Override
     public void initialize() throws OperatorException {
@@ -96,11 +101,16 @@ public class O2CorrOlciOp extends Operator {
         slpBand = l1bProduct.getTiePointGrid("sea_level_pressure");
         detectorIndexBand = l1bProduct.getBand("detector_index");
 
+        altitudeBand = l1bProduct.getBand("altitude");
         if (demProduct != null) {
-            altitudeBand = demProduct.getRasterDataNode(demAltitudeBandName);
-        } else {
-            altitudeBand = l1bProduct.getBand("altitude");
+            collocatedDemProduct = demProduct;
+            if (!isDemProductCollocated()) {
+                collocatedDemProduct = collocateDemProduct();
+            }
+            demAltitudeBand = collocatedDemProduct.getRasterDataNode(demAltitudeBandName);
+            collocationFlagsBand = collocatedDemProduct.getRasterDataNode("collocation_flags");
         }
+//        setTargetProduct(collocatedDemProduct);  //  test
 
         radianceBands = new Band[5];
         cwlBands = new Band[5];
@@ -124,6 +134,12 @@ public class O2CorrOlciOp extends Operator {
         final Tile szaTile = getSourceTile(szaBand, targetRectangle);
         final Tile ozaTile = getSourceTile(ozaBand, targetRectangle);
         final Tile altitudeTile = getSourceTile(altitudeBand, targetRectangle);
+        Tile demAltitudeTile = null;
+        Tile collocationFlagsTile = null;
+        if (demAltitudeBand != null) {
+            demAltitudeTile = getSourceTile(demAltitudeBand, targetRectangle);
+            collocationFlagsTile = getSourceTile(collocationFlagsBand, targetRectangle);
+        }
         final Tile slpTile = getSourceTile(slpBand, targetRectangle);
         final Tile detectorIndexTile = getSourceTile(detectorIndexBand, targetRectangle);
         final Tile l1FlagsTile = getSourceTile(l1bProduct.getRasterDataNode("quality_flags"), targetRectangle);
@@ -147,7 +163,13 @@ public class O2CorrOlciOp extends Operator {
                     // Preparing input data...
                     final double sza = szaTile.getSampleDouble(x, y);
                     final double oza = ozaTile.getSampleDouble(x, y);
-                    final double altitude = altitudeTile.getSampleDouble(x, y);
+                    double altitude = altitudeTile.getSampleDouble(x, y);
+                    // if all info from DEM is present, use DEM altitude:
+                    if (demAltitudeTile != null && collocationFlagsTile != null &&
+                            collocationFlagsTile.getSampleInt(x, y) == 1) {
+                        altitude = demAltitudeTile.getSampleDouble(x, y);
+                    }
+
                     final double slp = slpTile.getSampleDouble(x, y);
                     double surfacePress = O2CorrOlciAlgorithm.height2press(altitude, slp);
                     final float detectorIndex = detectorIndexTile.getSampleFloat(x, y);
@@ -213,7 +235,7 @@ public class O2CorrOlciOp extends Operator {
                         throw new OperatorException("Unexpected target band name: '" +
                                                             targetBandName + "' - exiting.");
                     }
-                }  else {
+                } else {
                     targetTile.setSample(x, y, Float.NaN);
                 }
             }
@@ -238,11 +260,16 @@ public class O2CorrOlciOp extends Operator {
         targetProduct.setEndTime(l1bProduct.getEndTime());
 
         for (int i = 13; i <= lastBandToProcess; i++) {
-            targetProduct.addBand("trans_" + i, ProductData.TYPE_FLOAT32);
-            targetProduct.addBand("press_" + i, ProductData.TYPE_FLOAT32);
-            targetProduct.addBand("surface_" + i, ProductData.TYPE_FLOAT32);
+            Band transBand = targetProduct.addBand("trans_" + i, ProductData.TYPE_FLOAT32);
+            transBand.setUnit("dl");
+            Band pressBand = targetProduct.addBand("press_" + i, ProductData.TYPE_FLOAT32);
+            pressBand.setUnit("hPa");
+            Band surfaceBand = targetProduct.addBand("surface_" + i, ProductData.TYPE_FLOAT32);
+            surfaceBand.setUnit("dl");
             if (writeCorrectedRadiances) {
-                targetProduct.addBand("radiance_" + i, ProductData.TYPE_FLOAT32);
+                Band radianceBand = targetProduct.addBand("radiance_" + i, ProductData.TYPE_FLOAT32);
+                final String unit = l1bProduct.getBand("OA01_radiance").getUnit();
+                radianceBand.setUnit(unit);
             }
         }
 
@@ -255,6 +282,44 @@ public class O2CorrOlciOp extends Operator {
 
         setTargetProduct(targetProduct);
     }
+
+    private boolean isDemProductCollocated() {
+        final int w1 = l1bProduct.getSceneRasterWidth();
+        final int h1 = l1bProduct.getSceneRasterHeight();
+        final int w2 = demProduct.getSceneRasterWidth();
+        final int h2 = demProduct.getSceneRasterHeight();
+        if (w1 != w2 || h1 != h2) {
+            return false;
+        }
+
+        final GeoCoding gc1 = l1bProduct.getSceneGeoCoding();
+        final GeoCoding gc2 = demProduct.getSceneGeoCoding();
+        if (gc1.getGeoPos(new PixelPos(0, 0), null).getLat() != gc2.getGeoPos(new PixelPos(0, 0), null).getLat()) {
+            return false;
+        }
+        if (gc1.getGeoPos(new PixelPos(0, 0), null).getLon() != gc2.getGeoPos(new PixelPos(0, 0), null).getLon()) {
+            return false;
+        }
+        if (gc1.getGeoPos(new PixelPos(w1 - 1, h1 - 1), null).getLat() != gc2.getGeoPos(new PixelPos(w2 - 1, h2 - 1), null).getLat()) {
+            return false;
+        }
+        if (gc1.getGeoPos(new PixelPos(w1 - 1, h1 - 1), null).getLon() != gc2.getGeoPos(new PixelPos(w2 - 1, h2 - 1), null).getLon()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private Product collocateDemProduct() {
+        CollocateOp op = new CollocateOp();
+        op.setParameterDefaultValues();
+        op.setMasterProduct(l1bProduct);
+        op.setSlaveProduct(demProduct);
+        op.setParameter("renameMasterComponents", false);
+        op.setParameter("renameSlaveComponents", false);
+        return op.getTargetProduct();
+    }
+
 
     public static class Spi extends OperatorSpi {
 

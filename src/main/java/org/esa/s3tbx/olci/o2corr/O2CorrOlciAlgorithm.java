@@ -31,7 +31,7 @@ public class O2CorrOlciAlgorithm {
      *
      * @param trans_rectified - input rectified transmission
      * @param bandIndex      - index of given band
-     * @return the pressure
+     * @return the pressure in hPa
      */
     public static double trans2Press(double trans_rectified, int bandIndex) {
         final double[] p = O2CorrOlciConstants.pCoeffsTra2Press[bandIndex - 13];
