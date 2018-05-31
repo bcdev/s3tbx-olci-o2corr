@@ -180,7 +180,7 @@ public class O2CorrOlciIO {
      * Creates a {@link DesmileLut} lookup table object for given band
      *
      *
-     * @param auxdataPath
+     * @param auxdataPath - the path where the auxdata was installed before
      * @param bandIndex - the band index
      *
      * @return the DesmileLut object
