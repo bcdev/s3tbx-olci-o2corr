@@ -23,37 +23,9 @@ public class O2CorrOlciIOTest {
         installAuxdataPath = O2CorrOlciIO.installAuxdata();
     }
 
-
-    @Test
-    public void testParseJsonFile_correctionModelCoeff() throws Exception {
-        final Path pathJSON = installAuxdataPath.resolve("O2_correction_model_coeff_13_amf.json");
-        JSONParser jsonParser = new JSONParser();
-        JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(pathJSON.toString()));
-
-        final double cwvl = O2CorrOlciIO.parseJSONDouble(jsonObject, "cwvl");
-        final double expectedCwvl = 761.726;
-        assertEquals(expectedCwvl, cwvl, 1e-8);
-
-        final double[] coefs = O2CorrOlciIO.parseJSON1DimDoubleArray(jsonObject, "coef");
-        final double[] expectedCoefs = {
-                0.7389559161849003,
-                1.0031293314088998,
-                0.07322228867490567,
-                -0.11330928826087217,
-                0.09548570369830006,
-                0.008328890679651264,
-                -0.3125364083301735,
-                0.1275950228285915,
-                -0.007912068831936118
-        };
-        assertNotNull(coefs);
-        assertEquals(9, coefs.length);
-        assertArrayEquals(expectedCoefs, coefs, 1e-8);
-    }
-
     @Test
     public void testParseJsonFile_desmileLut() throws Exception {
-        final Path pathJSON = installAuxdataPath.resolve("O2_desmile_lut_TEST.json");
+        final Path pathJSON = installAuxdataPath.resolve("O2_desmile_lut_SMALL_TEST.json");
         JSONParser jsonParser = new JSONParser();
         JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(pathJSON.toString()));
 

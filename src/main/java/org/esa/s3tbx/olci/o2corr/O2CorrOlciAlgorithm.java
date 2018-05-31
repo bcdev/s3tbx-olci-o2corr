@@ -12,7 +12,7 @@ public class O2CorrOlciAlgorithm {
 
     /**
      * This calculates the 1to1 transmission  ('rectified') (Zenith Sun --> Nadir observation: amf=2) at
-     * given band, which would be measured without scattering. Usefull only for comparison.
+     * given band, which would be measured without scattering. Useful only for comparison.
      *
      * @param press      - input pressure
      * @param bandIndex  - index of given band
@@ -26,7 +26,7 @@ public class O2CorrOlciAlgorithm {
 
     /**
      * This calculates the pressure given a 1to1 transmission ('rectified') (Zenith Sun --> Nadir
-     * observation: amf=2), which would be measured in given band without scattering. Usefull for a
+     * observation: amf=2), which would be measured in given band without scattering. Useful for a
      * first object height estimation (but *not* for dark targets (ocean!!!!))
      *
      * @param trans_rectified - input rectified transmission
