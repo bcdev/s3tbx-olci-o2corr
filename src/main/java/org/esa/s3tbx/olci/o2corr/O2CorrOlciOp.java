@@ -18,6 +18,7 @@ import smile.neighbor.KDTree;
 
 import java.awt.*;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 /**
@@ -103,6 +104,7 @@ public class O2CorrOlciOp extends Operator {
 
         altitudeBand = l1bProduct.getBand("altitude");
         if (demProduct != null) {
+            O2CorrOlciIO.validateDemProduct(demProduct, demAltitudeBandName);
             collocatedDemProduct = demProduct;
             if (!isDemProductCollocated()) {
                 collocatedDemProduct = collocateDemProduct();
@@ -244,10 +246,11 @@ public class O2CorrOlciOp extends Operator {
     }
 
     private void initDesmileAuxdata() throws IOException, ParseException {
+        final Path auxdataPath = O2CorrOlciIO.installAuxdata();
         desmileLuts = new DesmileLut[numBandsToProcess];
         desmileKdTrees = new KDTree[numBandsToProcess];
         for (int i = 13; i <= lastBandToProcess; i++) {
-            desmileLuts[i - 13] = O2CorrOlciIO.createDesmileLut(i);
+            desmileLuts[i - 13] = O2CorrOlciIO.createDesmileLut(auxdataPath, i);
             desmileKdTrees[i - 13] = O2CorrOlciIO.createKDTreeForDesmileInterpolation(desmileLuts[i - 13]);
         }
     }

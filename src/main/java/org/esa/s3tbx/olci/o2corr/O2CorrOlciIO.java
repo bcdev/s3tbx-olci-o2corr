@@ -3,10 +3,7 @@ package org.esa.s3tbx.olci.o2corr;
 import com.bc.ceres.core.ProgressMonitor;
 import com.google.common.primitives.Doubles;
 import org.esa.snap.core.datamodel.Product;
-import org.esa.snap.core.gpf.GPF;
 import org.esa.snap.core.gpf.OperatorException;
-import org.esa.snap.core.gpf.OperatorSpi;
-import org.esa.snap.core.gpf.OperatorSpiRegistry;
 import org.esa.snap.core.util.ResourceInstaller;
 import org.esa.snap.core.util.SystemUtils;
 import org.json.simple.JSONArray;
@@ -29,6 +26,11 @@ import java.util.stream.Collectors;
  */
 public class O2CorrOlciIO {
 
+    /**
+     * Validates the OLCI L1b source product.
+     *
+     * @param l1bProduct - the L1b product
+     */
     public static void validateSourceProduct(Product l1bProduct) {
         if (!l1bProduct.getProductType().contains("OL_1")) {
             // current products have product type 'OL_1_ERR'
@@ -37,27 +39,79 @@ public class O2CorrOlciIO {
         }
     }
 
+    /**
+     * Validates the optional DEM source product.
+     *
+     * @param demProduct - the DEM product
+     * @param altitudeBandName - the specified altitude band name
+     */
+    public static void validateDemProduct(Product demProduct, String altitudeBandName) {
+        if (!demProduct.containsBand(altitudeBandName)) {
+            throw new OperatorException("Optional DEM product does not contain specified altitude band '" +
+                                                altitudeBandName + "' - exiting.");
+        }
+    }
 
+    /**
+     * extracts a double variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return double
+     */
     public static double parseJSONDouble(JSONObject jsonObject, String variableName) {
         return (double) jsonObject.get(variableName);
     }
 
+    /**
+     * extracts an int variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return int
+     */
     public static long parseJSONInt(JSONObject jsonObject, String variableName) {
         return (Long) jsonObject.get(variableName);
     }
 
+    /**
+     * extracts a one-dimensional double array variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return double[]
+     */
     public static double[] parseJSON1DimDoubleArray(JSONObject jsonObject, String variableName) {
         JSONArray jsonArray = (JSONArray) jsonObject.get(variableName);
         List<Double> doubleList = (List<Double>) jsonArray.stream().collect(Collectors.toList());
         return Doubles.toArray(doubleList);
     }
 
+    /**
+     * extracts a one-dimensional String array variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return String[]
+     */
     public static String[] parseJSON1DimStringArray(JSONObject jsonObject, String variableName) {
         JSONArray jsonArray = (JSONArray) jsonObject.get(variableName);
         List<String> stringList = (List<String>) jsonArray.stream().collect(Collectors.toList());
         return stringList.toArray(new String[stringList.size()]);
     }
 
+    /**
+     * extracts a two-dimensional double array variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return double[][]
+     */
     public static double[][] parseJSON2DimDoubleArray(JSONObject jsonObject, String variableName) {
         final JSONArray jsonArray1 = (JSONArray) jsonObject.get(variableName);
 
@@ -78,6 +132,14 @@ public class O2CorrOlciIO {
         return doubleArr;
     }
 
+    /**
+     * extracts a three-dimensional double array variable from a JSON object
+     *
+     * @param jsonObject - the JSON object
+     * @param variableName - the variable name
+     *
+     * @return double[][][]
+     */
     public static double[][][] parseJSON3DimDoubleArray(JSONObject jsonObject, String variableName) {
         final JSONArray jsonArray1 = (JSONArray) jsonObject.get(variableName);
 
@@ -103,13 +165,31 @@ public class O2CorrOlciIO {
         return doubleArr;
     }
 
+    /**
+     * Creates a KDTree object from a given {@link DesmileLut} lookup table object.
+     *
+     * @param desmileLut - the lookup table for desmiling
+     *
+     * @return the KDTree object
+     */
     public static KDTree<double[]> createKDTreeForDesmileInterpolation(DesmileLut desmileLut) {
         return new KDTree<>(desmileLut.getX(), desmileLut.getX());
     }
 
-    public static DesmileLut createDesmileLut(int bandIndex) throws IOException, ParseException {
+    /**
+     * Creates a {@link DesmileLut} lookup table object for given band
+     *
+     *
+     * @param auxdataPath
+     * @param bandIndex - the band index
+     *
+     * @return the DesmileLut object
+     * @throws IOException -
+     * @throws ParseException -
+     */
+    public static DesmileLut createDesmileLut(Path auxdataPath, int bandIndex) throws IOException, ParseException {
         final String jsonFilename = "O2_desmile_lut_" + bandIndex + ".json";
-        final Path jsonPath =  SystemUtils.getAuxDataPath().resolve("o2corr" + File.separator + jsonFilename);
+        final Path jsonPath =  auxdataPath.resolve(jsonFilename);
         JSONParser jsonParser = new JSONParser();
         JSONObject jsonObject = (JSONObject) jsonParser.parse(new FileReader(jsonPath.toString()));
 
@@ -130,11 +210,13 @@ public class O2CorrOlciIO {
         return new DesmileLut(L, M, N, X, Y, jacobians, MEAN, VARI, cwvl, cbwd, leafsize, sequ);
     }
 
-
+    /**
+     * Installs auxiliary data (i.e. lookup tables for desmiling).
+     *
+     * @return - the auxdata path for O2 correction
+     * @throws IOException -
+     */
     static Path installAuxdata() throws IOException {
-        OperatorSpiRegistry operatorSpiRegistry = GPF.getDefaultInstance().getOperatorSpiRegistry();
-        OperatorSpi spi = operatorSpiRegistry.getOperatorSpi("O2CorrOlci");
-        String version = "v" + spi.getOperatorDescriptor().getVersion();
         Path auxdataDirectory = SystemUtils.getAuxDataPath().resolve("o2corr");
         final Path sourceDirPath = ResourceInstaller.findModuleCodeBasePath(O2CorrOlciOp.class).resolve("auxdata/luts");
         final ResourceInstaller resourceInstaller = new ResourceInstaller(sourceDirPath, auxdataDirectory);
