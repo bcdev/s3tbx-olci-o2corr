@@ -8,5 +8,6 @@
     <mapID target="olciO2corrTool" url="o2corr/O2CorrTool.html"/>
     <mapID target="o2corrAlgorithmSpecification" url="o2corr/O2CorrAlgorithmSpecification.html"/>
     <mapID target="o2corrProcessorDescription" url="o2corr/O2CorrProcessorDescription.html"/>
+    <mapID target="o2corrCommandLine" url="o2corr/O2CorrCommandLine.html"/>
 
 </map>

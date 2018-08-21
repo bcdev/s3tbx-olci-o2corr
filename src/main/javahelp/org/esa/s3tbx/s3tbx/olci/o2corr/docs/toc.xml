@@ -13,6 +13,7 @@
                 <tocitem text="OLCI O2 Correction" target="olciO2corrTool">
                     <tocitem text="Algorithm Specification" target="o2corrAlgorithmSpecification"/>
                     <tocitem text="Processor Description" target="o2corrProcessorDescription"/>
+                    <tocitem text="Command Line Processing" target="o2corrCommandLine"/>
                 </tocitem>
             </tocitem>
         </tocitem>
