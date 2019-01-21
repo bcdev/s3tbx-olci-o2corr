@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  *
  * @author Olaf Danne
  */
-@OperatorMetadata(alias = "O2CorrOlci", version = "0.8",
+@OperatorMetadata(alias = "O2CorrOlci", version = "1.0",
         authors = "R.Preusker, O.Danne",
         category = "Optical/Preprocessing",
         copyright = "Copyright (C) 2018 by Brockmann Consult",

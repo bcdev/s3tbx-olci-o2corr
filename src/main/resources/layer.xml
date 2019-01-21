@@ -9,7 +9,7 @@
                 <attr name="delegate" methodvalue="org.esa.snap.core.gpf.ui.DefaultOperatorAction.create"/>
                 <attr name="displayName" stringvalue="O2 Correction (OLCI)"/>
                 <attr name="operatorName" stringvalue="O2CorrOlci"/>
-                <attr name="dialogTitle" stringvalue="O2 Correction (OLCI) - v0.81"/>
+                <attr name="dialogTitle" stringvalue="O2 Correction (OLCI) - v1.0"/>
                 <attr name="targetProductNameSuffix" stringvalue="_o2corr"/>
                 <attr name="helpId" stringvalue="olciO2corrTool"/>
             </file>
