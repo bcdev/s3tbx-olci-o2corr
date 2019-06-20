@@ -4,14 +4,14 @@
 
     <folder name="Actions">
         <folder name="Operators">
-            <file name="org-esa-s3tbx-olci-o2corr-O2CorrOlciOpAction.instance">
+            <file name="org-esa-s3tbx-olci-harmonisation-OlciHarmonisationOpAction.instance">
                 <attr name="instanceCreate" methodvalue="org.openide.awt.Actions.alwaysEnabled"/>
                 <attr name="delegate" methodvalue="org.esa.snap.core.gpf.ui.DefaultOperatorAction.create"/>
-                <attr name="displayName" stringvalue="O2 Correction (OLCI)"/>
-                <attr name="operatorName" stringvalue="O2CorrOlci"/>
-                <attr name="dialogTitle" stringvalue="O2 Correction (OLCI) - v1.0"/>
-                <attr name="targetProductNameSuffix" stringvalue="_o2corr"/>
-                <attr name="helpId" stringvalue="olciO2corrTool"/>
+                <attr name="displayName" stringvalue="OLCI Harmonisation"/>
+                <attr name="operatorName" stringvalue="OlciHarmonisation"/>
+                <attr name="dialogTitle" stringvalue="OLCI Harmonisation - v1.1"/>
+                <attr name="targetProductNameSuffix" stringvalue="_harmonised"/>
+                <attr name="helpId" stringvalue="olciHarmonisationTool"/>
             </file>
         </folder>
     </folder>
@@ -19,11 +19,11 @@
     <folder name="Menu">
         <folder name="Optical">
             <folder name="Preprocessing">
-                <file name="org-esa-s3tbx-olci-o2corr-O2CorrOlciOpAction.shadow">
+                <file name="org-esa-s3tbx-olci-harmonisation-OlciHarmonisationOpAction.shadow">
                     <attr name="originalFile"
-                          stringvalue="Actions/Operators/org-esa-s3tbx-olci-o2corr-O2CorrOlciOpAction.instance"/>
+                          stringvalue="Actions/Operators/org-esa-s3tbx-olci-harmonisation-OlciHarmonisationOpAction.instance"/>
                     <attr name="position" intvalue="1"/>
-                    <attr name="displayName" stringvalue="O2 Correction (OLCI)"/>
+                    <attr name="displayName" stringvalue="OLCI Harmonisation"/>
                 </file>
             </folder>
         </folder>
@@ -31,7 +31,7 @@
 
     <folder name="Services">
         <folder name="JavaHelp">
-            <file name="org-esa-s3tbx-s3tbx-olci-o2corr-helpset.xml" url="helpset.xml">
+            <file name="org-esa-s3tbx-s3tbx-olci-harmonisation-helpset.xml" url="helpset.xml">
                 <attr name="position" intvalue="4600"/>
             </file>
         </folder>

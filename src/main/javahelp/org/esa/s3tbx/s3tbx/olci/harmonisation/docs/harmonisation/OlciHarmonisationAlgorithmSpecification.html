@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>SNAP Data Processors - OLCI O2 Correction Algorithm Specification</title>
+    <title>SNAP Data Processors - OLCI Harmonisation Algorithm Specification</title>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
     <link rel="stylesheet" href="../style.css">
 </head>
@@ -9,7 +9,7 @@
 <table class="header">
     <tr class="header">
         <td class="header">&nbsp;
-            SNAP Data Processors - OLCI O2 Correction Algorithm Specification
+            SNAP Data Processors - OLCI Harmonisation Algorithm Specification
         </td>
         <td class="header" align="right"><a
                 href="nbdocs://org.esa.snap.snap.help/org/esa/snap/snap/help/docs/general/overview/SnapOverview.html"><img
@@ -29,7 +29,7 @@
     the surface, the impact on L2 algorithms is very small and additionally, can be corrected by a smile <i>correction</i>.
     The smile correction is a preprocessor, working on top of atmosphere reflectance (eliminating the influence of
     spectral variations of the solar constant). A smile correction as implemented in the OLCI ground segment processor
-    it is based on a first order Taylor expansion, approximating the spectral sensitivity with a simple difference
+    is based on a first order Taylor expansion, approximating the spectral sensitivity with a simple difference
     quotient of neighboring bands and modifying the bands to be consistent with their nominal wavelength. For the
     OLCI bands in the O2A band, namely bands 13, 14 and 15, such a standard smile correction is not possible, since
     the spectral sensitivity cannot be approximated using neighborhood bands. This is undesirable, since concurrently
@@ -37,8 +37,9 @@
     oxygen bands for cloud detection. <br> <br>
 
     R. Preusker, Freie Universität Berlin, has developed an easy to use procedure, which modifies the <i>effective
-    transmittance</i> in bands 13, 14 and 15 so, as if it would be measured at their mean wavelengths and with nominal
-    bandwidth.  <br> <br>
+    transmittance</i> in bands 13, 14 and 15 in a sense of a 'harmonisation', which means that these 'harmonised'
+    transmittances are the ones which would be measured at their corresponding mean wavelengths and with
+    nominal bandwidth.  <br> <br>
 
     The algorithm and its underlying equations are described in more detail in the ATBD of the ESA SEOM S34SCI Land
     Study for Snow [1].  <br>

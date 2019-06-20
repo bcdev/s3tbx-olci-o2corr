@@ -120,6 +120,7 @@
     <orderEntry type="library" name="Maven: org.esa.snap:snap-raster:7.0.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.esa.snap:snap-engine-utilities:7.0.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.esa.snap:snap-dem:7.0.0-SNAPSHOT" level="project" />
+    <orderEntry type="library" name="Maven: org.esa.snap:snap-geotiff:7.0.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.jsoup:jsoup:1.8.3" level="project" />
     <orderEntry type="library" name="Maven: org.esa.snap:snap-collocation:7.0.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: junit:junit:4.12" level="project" />

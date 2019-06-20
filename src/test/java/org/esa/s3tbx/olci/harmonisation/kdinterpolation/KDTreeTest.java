@@ -1,4 +1,4 @@
-package org.esa.s3tbx.olci.o2corr.kdinterpolation;
+package org.esa.s3tbx.olci.harmonisation.kdinterpolation;
 
 import org.junit.Test;
 import smile.neighbor.KDTree;

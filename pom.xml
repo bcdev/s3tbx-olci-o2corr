@@ -20,12 +20,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.esa.s3tbx</groupId>
-    <artifactId>s3tbx-olci-o2corr</artifactId>
-    <version>1.0</version>
+    <artifactId>s3tbx-olci-harmonisation</artifactId>
+    <version>1.1</version>
 
-    <name>S3TBX OLCI O2 Correction</name>
+    <name>S3TBX OLCI Harmonisation</name>
     <packaging>nbm</packaging>
-    <description>Performs O2 correction for OLCI (Java implementation).</description>
+    <description>Performs OLCI Harmonisation (Java implementation).</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

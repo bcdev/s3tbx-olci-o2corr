@@ -10,10 +10,10 @@
     <tocitem text="Sentinel Toolbox Application">
         <tocitem text="Optical">
             <tocitem text="Pre-Processing">
-                <tocitem text="OLCI O2 Correction" target="olciO2corrTool">
-                    <tocitem text="Algorithm Specification" target="o2corrAlgorithmSpecification"/>
-                    <tocitem text="Processor Description" target="o2corrProcessorDescription"/>
-                    <tocitem text="Command Line Processing" target="o2corrCommandLine"/>
+                <tocitem text="OLCI Harmonisation" target="olciHarmonisationTool">
+                    <tocitem text="Algorithm Specification" target="olciHarmonisationAlgorithmSpecification"/>
+                    <tocitem text="Processor Description" target="olciHarmonisationProcessorDescription"/>
+                    <tocitem text="Command Line Processing" target="olciHarmonisationCommandLine"/>
                 </tocitem>
             </tocitem>
         </tocitem>
