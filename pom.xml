@@ -21,7 +21,7 @@
 
     <groupId>org.esa.s3tbx</groupId>
     <artifactId>s3tbx-olci-harmonisation</artifactId>
-    <version>1.1</version>
+    <version>7.0.0</version>
 
     <name>S3TBX OLCI Harmonisation</name>
     <packaging>nbm</packaging>
@@ -29,7 +29,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <snap.version>7.0.0-SNAPSHOT</snap.version>
+        <snap.version>7.0.0</snap.version>
         <!--<snap.version>6.0.0</snap.version>-->
         <javahelp.version>2.0.05</javahelp.version>
     </properties>
